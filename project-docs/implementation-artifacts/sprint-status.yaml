@@ -1,0 +1,28 @@
+stories:
+  - id: "1.1"
+    title: "Initialize Project Foundation, Config, And Domain Models"
+    status: "done"
+    epic: 1
+    dependencies: []
+  - id: "1.2"
+    title: "Implement MQTT Adapter And Clock Service"
+    status: "done"
+    epic: 1
+    dependencies: ["1.1"]
+  - id: "1.3"
+    title: "Implement MCP Tools — Setup, Auth, And Commands"
+    status: "done"
+    epic: 1
+    dependencies: ["1.2", "1.4"]
+  - id: "1.4"
+    title: "Implement Auth, Preflight, And Server Bootstrap"
+    status: "done"
+    epic: 1
+    dependencies: ["1.1"]
+  - id: "1.5"
+    title: "AGENTS.md And Quality Gate Hardening"
+    status: "done"
+    epic: 1
+    dependencies: ["1.3", "1.2", "1.4"]
+completed_epics: [1]
+current_epic: null

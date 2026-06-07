@@ -5,7 +5,8 @@ from __future__ import annotations
 import pytest
 
 from mqtt_mcp.config.models import AuthMode, MqttConfig
-from mqtt_mcp.config.validation import run_preflight
+from mqtt_mcp.config.validation import ensure_preflight_ready, run_preflight
+from mqtt_mcp.domain.exceptions import DispatchError
 
 
 class TestRunPreflight:
@@ -54,3 +55,16 @@ class TestRunPreflight:
         config = MqttConfig(broker_url="mqtt://localhost:1883", auth_mode=AuthMode.NONE)
         result = run_preflight(config)
         assert result.auth_mode == AuthMode.NONE
+
+
+class TestEnsurePreflightReady:
+    """External readiness preflight."""
+
+    def test_accepts_ready_adapter(self) -> None:  # noqa: D102
+        adapter = type("Adapter", (), {"is_ready": lambda self: True})()
+        ensure_preflight_ready(MqttConfig(), adapter)
+
+    def test_rejects_unready_adapter(self) -> None:  # noqa: D102
+        adapter = type("Adapter", (), {"is_ready": lambda self: False})()
+        with pytest.raises(DispatchError, match="broker_url"):
+            ensure_preflight_ready(MqttConfig(), adapter)

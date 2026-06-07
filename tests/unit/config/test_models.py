@@ -5,8 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from mqtt_mcp.config.models import AuthMode, MqttConfig
-from mqtt_mcp.tools.permissions import KNOWN_TOOL_NAMES
+from mqtt_mcp.config.models import KNOWN_TOOL_NAMES, AuthMode, MqttConfig
 
 
 class TestMqttConfigDefaults:

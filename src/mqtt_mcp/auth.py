@@ -11,7 +11,8 @@ import hmac
 import logging
 from typing import NamedTuple
 
-from mqtt_mcp.domain.exceptions import ForbiddenDeviceError, UnauthorizedError
+from mqtt_mcp.domain.exceptions import DomainError, ForbiddenDeviceError, UnauthorizedError
+from mqtt_mcp.domain.safety import validate_device_id
 
 logger = logging.getLogger("mqtt_mcp")
 
@@ -56,7 +57,14 @@ def parse_credentials(auth_credentials: str | None, auth_token: str | None) -> l
                 continue
             cred_id = parts[0]
             token = parts[1]
+            if not cred_id:
+                raise ValueError("Credential id must not be empty")
+            if not token:
+                raise ValueError(f"Credential token must not be empty for id '{cred_id}'")
             scopes = [s.strip() for s in parts[2].split(",")] if len(parts) > 2 else ["*"]
+            if any(scope == "" for scope in scopes):
+                raise ValueError(f"Credential scopes must not be empty for id '{cred_id}'")
+            _validate_scopes(cred_id, scopes)
             credentials.append(Credential(id=cred_id, token=token, devices=scopes))
 
     if not credentials and auth_token:
@@ -66,6 +74,28 @@ def parse_credentials(auth_credentials: str | None, auth_token: str | None) -> l
         raise ValueError("No valid credentials configured")
 
     return credentials
+
+
+def _validate_scopes(cred_id: str, scopes: list[str]) -> None:
+    """Validate credential device scopes."""
+    for scope in scopes:
+        if scope == "*":
+            continue
+        if scope.endswith("*"):
+            prefix = scope[:-1]
+            if not prefix:
+                raise ValueError(f"Invalid device scope '{scope}' for id '{cred_id}'")
+            _validate_scope_device_id(cred_id, scope, prefix.rstrip("-_") or prefix)
+            continue
+        _validate_scope_device_id(cred_id, scope, scope)
+
+
+def _validate_scope_device_id(cred_id: str, scope: str, device_id: str) -> None:
+    """Validate one scope component and raise config-oriented errors."""
+    try:
+        validate_device_id(device_id)
+    except DomainError as exc:
+        raise ValueError(f"Invalid device scope '{scope}' for id '{cred_id}': {exc}") from exc
 
 
 def verify_token(token: str, credentials: list[Credential]) -> Credential:

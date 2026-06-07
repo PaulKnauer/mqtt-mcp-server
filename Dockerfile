@@ -2,11 +2,13 @@
 FROM python:3.12-slim AS builder
 
 WORKDIR /app
-COPY --link pyproject.toml uv.lock ./
+COPY --link pyproject.toml uv.lock README.md ./
+COPY --link src/ src/
 
 RUN pip install --no-cache-dir uv \
     && uv sync --frozen --no-dev --no-install-project \
-    && uv export --frozen --no-dev --format=requirements-dot > requirements.txt
+    && uv build --wheel \
+    && uv export --frozen --no-dev --no-emit-project --format=requirements.txt > requirements.txt
 
 FROM python:3.12-slim
 
@@ -18,7 +20,7 @@ RUN groupadd -r mqttmcp && useradd -r -g mqttmcp -d /app -s /sbin/nologin mqttmc
 # Copy only runtime dependencies + built wheel
 COPY --from=builder /app/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY --link dist/ dist/
+COPY --from=builder /app/dist/*.whl dist/
 
 RUN pip install --no-cache-dir dist/*.whl && rm -rf dist requirements.txt
 

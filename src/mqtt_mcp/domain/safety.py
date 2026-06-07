@@ -14,6 +14,7 @@ from mqtt_mcp.domain.exceptions import (
     BrightnessOutOfRangeError,
     DurationOutOfRangeError,
     EmptyMessageError,
+    InvalidAlarmTimeError,
     InvalidDeviceIdError,
     PastAlarmTimeError,
 )
@@ -53,16 +54,14 @@ def validate_alarm_time(alarm_time: datetime) -> datetime:
         The alarm time if valid.
 
     Raises:
-        PastAlarmTimeError: if alarm_time is more than 1 minute in the past.
-            A 1-minute grace period allows for clock skew.
+        InvalidAlarmTimeError: if alarm_time is timezone-naive or not UTC.
+        PastAlarmTimeError: if alarm_time is not in the future.
 
     """
     now = datetime.now(UTC)
-    if alarm_time.tzinfo is None:
-        alarm_time = alarm_time.replace(tzinfo=UTC)
-    # Allow up to 1 minute in the past for clock skew
-    grace_period = 60.0
-    if alarm_time.timestamp() < now.timestamp() - grace_period:
+    if alarm_time.tzinfo is None or alarm_time.utcoffset() != UTC.utcoffset(now):
+        raise InvalidAlarmTimeError(alarm_time.isoformat())
+    if alarm_time.timestamp() <= now.timestamp():
         raise PastAlarmTimeError(alarm_time.isoformat())
     return alarm_time
 

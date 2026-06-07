@@ -8,16 +8,24 @@ and MQTT broker connectivity before accepting MCP tool calls.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Protocol
 
 from mqtt_mcp.auth import parse_credentials
 from mqtt_mcp.config.loader import load_config
 from mqtt_mcp.config.models import AuthMode, MqttConfig
+from mqtt_mcp.domain.exceptions import DispatchError
 
 logger = logging.getLogger("mqtt_mcp")
 
 # Cache of parsed credentials for tool-level auth verification.
 _credentials: list[Any] | None = None
+
+
+class ReadyAdapter(Protocol):
+    """Minimal adapter readiness surface used by preflight."""
+
+    def is_ready(self) -> bool:
+        """Return True when the backing transport is ready."""
 
 
 def get_credentials() -> list[Any]:
@@ -92,7 +100,7 @@ def run_preflight(config: MqttConfig | None = None) -> MqttConfig:
     return config
 
 
-def ensure_preflight_ready(config: MqttConfig) -> None:
+def ensure_preflight_ready(config: MqttConfig, adapter: ReadyAdapter) -> None:
     """
     Additional preflight checks that require external resources.
 
@@ -100,7 +108,11 @@ def ensure_preflight_ready(config: MqttConfig) -> None:
 
     Args:
         config: The validated MqttConfig.
+        adapter: Connected MQTT adapter.
+
+    Raises:
+        DispatchError: if the adapter is not connected.
 
     """
-    # Future: MQTT broker connectivity check
-    pass
+    if not adapter.is_ready():
+        raise DispatchError(f"MQTT preflight failed for broker_url: {config.broker_url}")

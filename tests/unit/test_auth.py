@@ -57,6 +57,14 @@ class TestParseCredentials:
         assert len(creds) == 1
         assert creds[0].devices == ["*"]
 
+    def test_rejects_empty_token(self) -> None:  # noqa: D102
+        with pytest.raises(ValueError, match="token"):
+            parse_credentials("admin||*", None)
+
+    def test_rejects_invalid_scope(self) -> None:  # noqa: D102
+        with pytest.raises(ValueError):
+            parse_credentials("admin|secret|bad/scope", None)
+
 
 class TestVerifyToken:
     """Bearer token verification."""

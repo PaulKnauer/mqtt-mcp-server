@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import logging
 import random
+import threading
 import time
+from typing import Any
 from urllib.parse import urlparse
 
 import paho.mqtt.client as mqtt
@@ -22,6 +24,8 @@ logger = logging.getLogger("mqtt_mcp")
 _MAX_RETRIES = 3
 _RETRY_DELAY_S = 1.0
 _KEEPALIVE_S = 60
+_CONNECT_TIMEOUT_S = 5.0
+_PUBLISH_TIMEOUT_S = 5.0
 
 
 class MqttAdapter:
@@ -39,6 +43,8 @@ class MqttAdapter:
     def __init__(self) -> None:  # noqa: D107
         self._client: mqtt.Client | None = None
         self._connected = False
+        self._connect_event = threading.Event()
+        self._connect_reason_code: int | None = None
 
     def connect(
         self,
@@ -80,6 +86,7 @@ class MqttAdapter:
             client.tls_set()
 
         # Register automatic reconnection callback
+        client.on_connect = self._on_connect
         client.on_disconnect = self._on_disconnect
         # Configure paho's built-in auto-reconnect delay
         client.reconnect_delay_set(min_delay=1, max_delay=60)
@@ -87,12 +94,19 @@ class MqttAdapter:
         last_error: Exception | None = None
         for attempt in range(1, _MAX_RETRIES + 1):
             try:
+                self._connect_event.clear()
+                self._connect_reason_code = None
                 result = client.connect(host, port, keepalive=_KEEPALIVE_S)
                 if result != MQTTErrorCode.MQTT_ERR_SUCCESS:
                     raise DispatchError(f"Connection failed with code {result.name}")
                 client.loop_start()
+                if not self._connect_event.wait(timeout=_CONNECT_TIMEOUT_S):
+                    raise DispatchError("Timed out waiting for MQTT CONNACK")
+                if self._connect_reason_code != 0:
+                    raise DispatchError(
+                        f"Connection rejected with reason code {self._connect_reason_code}",
+                    )
                 self._client = client
-                self._connected = True
                 logger.info(
                     "Connected to MQTT broker %s:%d (attempt %d/%d)",
                     host,
@@ -103,6 +117,7 @@ class MqttAdapter:
                 return
             except (OSError, DispatchError, ConnectionError, TimeoutError) as exc:
                 last_error = exc
+                client.loop_stop()
                 logger.warning(
                     "MQTT connection attempt %d/%d failed: %s",
                     attempt,
@@ -123,23 +138,44 @@ class MqttAdapter:
             f"after {_MAX_RETRIES} attempts: {last_error}",
         )
 
+    def _on_connect(
+        self,
+        client: mqtt.Client,
+        userdata: object,
+        flags: object,
+        reason_code: Any,
+        properties: object = None,
+    ) -> None:
+        """Handle paho-mqtt connection acknowledgment."""
+        code = _reason_code_to_int(reason_code)
+        self._connect_reason_code = code
+        self._connected = code == 0
+        self._connect_event.set()
+        if code != 0:
+            logger.warning("MQTT connection rejected (reason_code=%s)", reason_code)
+
     def _on_disconnect(
         self,
         client: mqtt.Client,
         userdata: object,
-        rc: int,
+        disconnect_flags: object,
+        reason_code: Any,
         properties: object = None,
     ) -> None:
         """
         Handle paho-mqtt disconnection callback.
 
-        If rc == 0 the disconnect was intentional (called via
+        If reason_code == 0 the disconnect was intentional (called via
         ``client.disconnect()``).  Otherwise the broker went away
         and paho's built-in reconnect loop will handle it.
         """
+        code = _reason_code_to_int(reason_code)
         self._connected = False
-        if rc != 0:
-            logger.warning("MQTT connection lost (rc=%d); reconnection active", rc)
+        if code != 0:
+            logger.warning(
+                "MQTT connection lost (reason_code=%s); reconnection active",
+                reason_code,
+            )
         else:
             logger.info("MQTT connection closed cleanly")
 
@@ -164,6 +200,10 @@ class MqttAdapter:
 
             if info.rc != MQTTErrorCode.MQTT_ERR_SUCCESS:
                 raise DispatchError(f"Publish to '{topic}' failed with code {info.rc.name}")
+            if qos > 0:
+                info.wait_for_publish(timeout=_PUBLISH_TIMEOUT_S)
+                if not info.is_published():
+                    raise DispatchError(f"Publish to '{topic}' timed out waiting for broker ack")
 
             logger.debug("Published to %s (qos=%d): %s", topic, qos, payload)
         except (OSError, AttributeError) as exc:
@@ -186,3 +226,14 @@ class MqttAdapter:
     def is_ready(self) -> bool:
         """Return True if connected to the broker."""
         return self._connected
+
+
+def _reason_code_to_int(reason_code: Any) -> int:
+    """Convert paho reason code variants to an integer code."""
+    try:
+        return int(reason_code)
+    except (TypeError, ValueError):
+        value = getattr(reason_code, "value", None)
+        if isinstance(value, int):
+            return value
+        return 0 if str(reason_code) == "Success" else 1

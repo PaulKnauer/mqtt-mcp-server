@@ -8,12 +8,17 @@ dispatches via ClockService, and returns structured results.
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import datetime
 
 from mcp.server.fastmcp import FastMCP
 
 from mqtt_mcp.config.models import AuthMode, MqttConfig
-from mqtt_mcp.domain.exceptions import DomainError, UnauthorizedError
+from mqtt_mcp.domain.exceptions import (
+    DomainError,
+    InvalidAlarmTimeError,
+    MqttMCPError,
+    UnauthorizedError,
+)
 from mqtt_mcp.domain.safety import (
     check_brightness_level,
     check_duration,
@@ -62,22 +67,24 @@ def _authenticate(config: MqttConfig, token: str | None, device_id: str | None) 
         check_device_authorization(matched_cred, device_id)
 
 
-def _safe_error(exc: DomainError) -> dict[str, object]:
-    """Convert a DomainError to a safe response dict."""
-    return {
+def _safe_error(exc: MqttMCPError) -> dict[str, object]:
+    """Convert an application error to a safe response dict."""
+    payload: dict[str, object] = {
         "error": str(exc),
         "category": exc.category.value,
-        "field": exc.field,
-        "suggestion": exc.suggestion,
     }
+    if isinstance(exc, DomainError):
+        payload["field"] = exc.field
+        payload["suggestion"] = exc.suggestion
+    return payload
 
 
 def _parse_rfc3339(value: str) -> datetime | None:
     """
     Parse an RFC3339 datetime string, returning None on invalid input.
 
-    Only accepts full datetime strings (date + time + UTC timezone).
-    Rejects bare dates, non-UTC timezones, and unparseable input.
+    Only accepts full datetime strings (date + time + explicit UTC timezone).
+    Rejects bare dates, timezone-less values, non-UTC timezones, and unparseable input.
     """
     try:
         normalised = value.replace("Z", "+00:00")
@@ -89,13 +96,9 @@ def _parse_rfc3339(value: str) -> datetime | None:
     if "T" not in value:
         return None
 
-    # Normalise to UTC — reject non-UTC timezones
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=UTC)
-    else:
-        utc_offset = parsed.utcoffset()
-        if utc_offset is None or utc_offset.total_seconds() != 0:
-            return None
+    utc_offset = parsed.utcoffset()
+    if parsed.tzinfo is None or utc_offset is None or utc_offset.total_seconds() != 0:
+        return None
 
     return parsed
 
@@ -126,14 +129,13 @@ def register_commands(
         token: str | None = None,
     ) -> dict[str, object]:
         """Set an alarm on a smart clock device."""
-        assert_tool_permitted("set_alarm")
-        _authenticate(config, token, device_id)
-
         try:
+            assert_tool_permitted("set_alarm")
             validate_device_id(device_id)
+            _authenticate(config, token, device_id)
             parsed_time = _parse_rfc3339(alarm_time)
             if parsed_time is None:
-                return {"error": "Invalid alarm_time format; expected RFC3339 UTC"}
+                raise InvalidAlarmTimeError(alarm_time)
             validate_alarm_time(parsed_time)
 
             result = clock_service.dispatch_command(
@@ -147,7 +149,7 @@ def register_commands(
                 },
             )
             return dict(result)
-        except DomainError as exc:
+        except MqttMCPError as exc:
             return _safe_error(exc)
 
     @app.tool(name="display_message")
@@ -158,13 +160,12 @@ def register_commands(
         token: str | None = None,
     ) -> dict[str, object]:
         """Display a message on a smart clock device."""
-        assert_tool_permitted("display_message")
-        _authenticate(config, token, device_id)
-
         try:
+            assert_tool_permitted("display_message")
             validate_device_id(device_id)
-            check_message(message)
+            safe_message = check_message(message)
             check_duration(duration_seconds)
+            _authenticate(config, token, device_id)
 
             result = clock_service.dispatch_command(
                 device_id=device_id,
@@ -172,12 +173,12 @@ def register_commands(
                 payload={
                     "deviceId": device_id,
                     "type": "display_message",
-                    "message": message,
+                    "message": safe_message,
                     "durationSeconds": duration_seconds,
                 },
             )
             return dict(result)
-        except DomainError as exc:
+        except MqttMCPError as exc:
             return _safe_error(exc)
 
     @app.tool(name="set_brightness")
@@ -187,12 +188,11 @@ def register_commands(
         token: str | None = None,
     ) -> dict[str, object]:
         """Set the screen brightness on a smart clock device."""
-        assert_tool_permitted("set_brightness")
-        _authenticate(config, token, device_id)
-
         try:
+            assert_tool_permitted("set_brightness")
             validate_device_id(device_id)
             check_brightness_level(level)
+            _authenticate(config, token, device_id)
 
             result = clock_service.dispatch_command(
                 device_id=device_id,
@@ -204,5 +204,5 @@ def register_commands(
                 },
             )
             return dict(result)
-        except DomainError as exc:
+        except MqttMCPError as exc:
             return _safe_error(exc)

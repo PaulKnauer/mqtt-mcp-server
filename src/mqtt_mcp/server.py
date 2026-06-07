@@ -13,6 +13,7 @@ from mcp.server.fastmcp import FastMCP
 
 from mqtt_mcp.adapters.mqtt_adapter import MqttAdapter
 from mqtt_mcp.config.models import MqttConfig
+from mqtt_mcp.config.validation import ensure_preflight_ready
 from mqtt_mcp.tools import register_all
 
 log = logging.getLogger("mqtt_mcp")
@@ -43,6 +44,7 @@ def create_server(config: MqttConfig) -> FastMCP:
         username=config.broker_username,
         password=config.broker_password.get_secret_value() if config.broker_password else None,
     )
+    ensure_preflight_ready(config, adapter)
 
     app = FastMCP("mqtt-mcp")
 

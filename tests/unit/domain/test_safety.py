@@ -10,6 +10,7 @@ from mqtt_mcp.domain.exceptions import (
     BrightnessOutOfRangeError,
     DurationOutOfRangeError,
     EmptyMessageError,
+    InvalidAlarmTimeError,
     InvalidDeviceIdError,
     PastAlarmTimeError,
 )
@@ -46,27 +47,27 @@ class TestCheckBrightnessLevel:
 
 
 class TestValidateAlarmTime:
-    """Alarm time must not be more than 1 minute in the past."""
+    """Alarm time must be future UTC."""
 
     def test_future_time_passes(self) -> None:  # noqa: D102
         future = datetime.now(UTC) + timedelta(hours=1)
         result = validate_alarm_time(future)
         assert result == future
 
-    def test_recent_past_within_grace_period(self) -> None:  # noqa: D102
+    def test_recent_past_raises(self) -> None:  # noqa: D102
         recent = datetime.now(UTC) - timedelta(seconds=30)
-        result = validate_alarm_time(recent)
-        assert result == recent
+        with pytest.raises(PastAlarmTimeError):
+            validate_alarm_time(recent)
 
     def test_past_beyond_grace_period_raises(self) -> None:  # noqa: D102
         past = datetime.now(UTC) - timedelta(minutes=5)
         with pytest.raises(PastAlarmTimeError):
             validate_alarm_time(past)
 
-    def test_naive_datetime_gets_utc_assumed(self) -> None:  # noqa: D102
+    def test_naive_datetime_raises(self) -> None:  # noqa: D102
         naive = datetime(2030, 1, 1, 7, 0, 0)
-        result = validate_alarm_time(naive)
-        assert result.tzinfo is not None
+        with pytest.raises(InvalidAlarmTimeError):
+            validate_alarm_time(naive)
 
 
 class TestCheckMessage:

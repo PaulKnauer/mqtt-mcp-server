@@ -38,7 +38,7 @@ type-check: ensure-uv
 coverage: ensure-uv
 	$(UV) run pytest --cov --cov-report=term-missing
 
-audit:
+audit: ensure-uv
 	# CVE-2026-4539 (pygments, <2.20.1, affects only rendered output at dev time)
 	#   No fix release as of 2026-06-06. Revisit next quarter.
 	# PYSEC-2026-196 (pip 26.1, build-env only — not a shipped dependency)

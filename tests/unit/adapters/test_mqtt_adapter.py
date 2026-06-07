@@ -19,7 +19,12 @@ class TestMqttAdapterConnect:
         from paho.mqtt.enums import MQTTErrorCode
 
         mock_client = MagicMock()
-        mock_client.connect.return_value = MQTTErrorCode.MQTT_ERR_SUCCESS
+
+        def _connect(host: str, port: int, keepalive: int) -> MQTTErrorCode:
+            mock_client.on_connect(mock_client, None, None, 0, None)
+            return MQTTErrorCode.MQTT_ERR_SUCCESS
+
+        mock_client.connect.side_effect = _connect
         return mock_client
 
     def test_successful_connect_parses_url(self) -> None:  # noqa: D102
@@ -70,6 +75,22 @@ class TestMqttAdapterConnect:
             assert mock_client.connect.call_count == 3
             assert not adapter.is_ready()
 
+    def test_connect_times_out_without_connack(self) -> None:  # noqa: D102
+        from paho.mqtt.enums import MQTTErrorCode
+
+        adapter = MqttAdapter()
+        with (
+            patch("mqtt_mcp.adapters.mqtt_adapter.mqtt.Client") as mock_client_cls,
+            patch("mqtt_mcp.adapters.mqtt_adapter._CONNECT_TIMEOUT_S", 0.001),
+        ):
+            mock_client = MagicMock()
+            mock_client.connect.return_value = MQTTErrorCode.MQTT_ERR_SUCCESS
+            mock_client_cls.return_value = mock_client
+
+            with pytest.raises(DispatchError, match="CONNACK"):
+                adapter.connect("mqtt://broker:1883")
+            assert not adapter.is_ready()
+
     def test_connect_mqtts_enables_tls(self) -> None:  # noqa: D102
         adapter = MqttAdapter()
         with patch("mqtt_mcp.adapters.mqtt_adapter.mqtt.Client") as mock_client_cls:
@@ -92,7 +113,12 @@ class TestMqttAdapterPublish:
         adapter = MqttAdapter()
         with patch("mqtt_mcp.adapters.mqtt_adapter.mqtt.Client") as mock_client_cls:
             mock_client = MagicMock()
-            mock_client.connect.return_value = MQTTErrorCode.MQTT_ERR_SUCCESS
+
+            def _connect(host: str, port: int, keepalive: int) -> MQTTErrorCode:
+                mock_client.on_connect(mock_client, None, None, 0, None)
+                return MQTTErrorCode.MQTT_ERR_SUCCESS
+
+            mock_client.connect.side_effect = _connect
             mock_client_cls.return_value = mock_client
             adapter.connect("mqtt://broker:1883")
             return adapter, mock_client
@@ -104,6 +130,8 @@ class TestMqttAdapterPublish:
 
         info = MagicMock()
         info.rc = MQTTErrorCode.MQTT_ERR_SUCCESS
+        info.wait_for_publish.return_value = True
+        info.is_published.return_value = True
         mock_client.publish.return_value = info
 
         adapter.publish("test/topic", '{"key": "value"}', qos=1)
@@ -131,6 +159,19 @@ class TestMqttAdapterPublish:
         with pytest.raises(DispatchError, match="failed with code"):
             adapter.publish("test/topic", "payload")
 
+    def test_publish_qos_wait_timeout_raises(self) -> None:  # noqa: D102
+        from paho.mqtt.enums import MQTTErrorCode
+
+        adapter, mock_client = self._make_connected_adapter()
+
+        info = MagicMock()
+        info.rc = MQTTErrorCode.MQTT_ERR_SUCCESS
+        info.is_published.return_value = False
+        mock_client.publish.return_value = info
+
+        with pytest.raises(DispatchError, match="timed out"):
+            adapter.publish("test/topic", "payload", qos=1)
+
 
 class TestMqttAdapterDisconnect:
     """Disconnecting from the broker."""
@@ -143,7 +184,12 @@ class TestMqttAdapterDisconnect:
         adapter = MqttAdapter()
         with patch("mqtt_mcp.adapters.mqtt_adapter.mqtt.Client") as mock_client_cls:
             mock_client = MagicMock()
-            mock_client.connect.return_value = MQTTErrorCode.MQTT_ERR_SUCCESS
+
+            def _connect(host: str, port: int, keepalive: int) -> MQTTErrorCode:
+                mock_client.on_connect(mock_client, None, None, 0, None)
+                return MQTTErrorCode.MQTT_ERR_SUCCESS
+
+            mock_client.connect.side_effect = _connect
             mock_client_cls.return_value = mock_client
             adapter.connect("mqtt://broker:1883")
             return adapter, mock_client

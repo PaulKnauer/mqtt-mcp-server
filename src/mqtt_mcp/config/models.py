@@ -27,6 +27,17 @@ class LogLevel(StrEnum):
     ERROR = "ERROR"
 
 
+KNOWN_TOOL_NAMES: frozenset[str] = frozenset(
+    {
+        "ping",
+        "server_info",
+        "set_alarm",
+        "display_message",
+        "set_brightness",
+    },
+)
+
+
 class MqttConfig(BaseModel):
     """Validated runtime configuration for MQTT MCP server."""
 

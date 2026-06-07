@@ -85,6 +85,19 @@ class PastAlarmTimeError(DomainError):
         )
 
 
+class InvalidAlarmTimeError(DomainError):
+    """Raised when alarm time is not valid RFC3339 UTC."""
+
+    def __init__(self, alarm_time: str) -> None:  # noqa: D107
+        super().__init__(
+            message=f"Invalid alarm time: {alarm_time}",
+            field="alarmTime",
+            suggestion=(
+                "Provide a future alarm time in RFC3339 UTC format, e.g. 2030-01-01T07:00:00Z."
+            ),
+        )
+
+
 class InvalidDeviceIdError(DomainError):
     """Raised when device ID format is invalid."""
 

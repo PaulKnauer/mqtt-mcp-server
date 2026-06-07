@@ -52,7 +52,7 @@ uv run python -m mqtt_mcp
 
 ```bash
 docker build -t mqtt-mcp-server .
-docker run --rm -e BROKER_URL=mqtt://host:1883 mqtt-mcp-server
+docker run --rm -e MQTT_MCP_BROKER_URL=mqtt://host:1883 mqtt-mcp-server
 ```
 
 ### Docker Compose (local MQTT broker)
@@ -67,22 +67,22 @@ services:
     build: .
     depends_on: [mosquitto]
     environment:
-      BROKER_URL: mqtt://mosquitto:1883
+      MQTT_MCP_BROKER_URL: mqtt://mosquitto:1883
 ```
 
 ## Configuration
 
 | Variable | Default | Description |
 |---|---|---|
-| `BROKER_URL` | `mqtt://localhost:1883` | MQTT broker URL (`mqtt://` or `mqtts://`) |
-| `BROKER_USERNAME` | — | MQTT broker username |
-| `BROKER_PASSWORD` | — | MQTT broker password |
-| `TOPIC_PREFIX` | `clocks/commands` | MQTT topic prefix |
-| `QOS` | `1` | MQTT QoS level (0-2) |
-| `AUTH_MODE` | `none` | Auth mode (`none` or `static`) |
-| `AUTH_TOKEN` | — | Legacy bearer token (wildcard scope `*`) |
-| `AUTH_CREDENTIALS` | — | Multi-credential format: `id\|token\|scope1,scope2;id2\|token2\|*` |
-| `LOG_LEVEL` | `INFO` | Log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
+| `MQTT_MCP_BROKER_URL` | `mqtt://localhost:1883` | MQTT broker URL (`mqtt://` or `mqtts://`) |
+| `MQTT_MCP_BROKER_USERNAME` | — | MQTT broker username |
+| `MQTT_MCP_BROKER_PASSWORD` | — | MQTT broker password |
+| `MQTT_MCP_TOPIC_PREFIX` | `clocks/commands` | MQTT topic prefix |
+| `MQTT_MCP_QOS` | `1` | MQTT QoS level (0-2) |
+| `MQTT_MCP_AUTH_MODE` | `none` | Auth mode (`none` or `static`) |
+| `MQTT_MCP_AUTH_TOKEN` | — | Legacy bearer token (wildcard scope `*`) |
+| `MQTT_MCP_AUTH_CREDENTIALS` | — | Multi-credential format: `id\|token\|scope1,scope2;id2\|token2\|*` |
+| `MQTT_MCP_LOG_LEVEL` | `INFO` | Log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
 
 ## Tools
 
@@ -183,7 +183,7 @@ make build-check   # uv build
 3. Add a method to `src/mqtt_mcp/services/clock_service.py`
 4. Add the handler to `src/mqtt_mcp/tools/commands.py`
 5. Register in `src/mqtt_mcp/tools/__init__.py::register_all()`
-6. Add to `NEW_PERMISSIONS` in `src/mqtt_mcp/tools/permissions.py`
+6. Add to `KNOWN_TOOL_NAMES` in `src/mqtt_mcp/config/models.py`
 7. Add tests in `tests/unit/tools/`
 
 ## Authentication

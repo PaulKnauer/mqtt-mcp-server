@@ -24,12 +24,12 @@ _log = logging.getLogger("mqtt_mcp")
 
 def main() -> None:
     """Run the MQTT MCP server CLI entry point."""
-    log_level = _resolve_log_level()
+    config = run_preflight()
+
+    log_level = _resolve_log_level(config.log_level.value)
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(JsonFormatter())
-    logging.basicConfig(level=log_level, handlers=[handler])
-
-    config = run_preflight()
+    logging.basicConfig(level=log_level, handlers=[handler], force=True)
 
     # create_server connects the MQTT adapter — any failure propagates
     # as DispatchError, causing a clean exit with a useful log message.
@@ -46,9 +46,9 @@ def main() -> None:
     app.run(transport="stdio")
 
 
-def _resolve_log_level() -> int:
-    """Return the log level from the LOG_LEVEL env var, defaulting to INFO."""
-    level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
+def _resolve_log_level(configured_level: str | None = None) -> int:
+    """Return the configured log level, allowing LOG_LEVEL as a legacy override."""
+    level_name = os.environ.get("LOG_LEVEL", configured_level or "INFO").upper()
     return getattr(logging, level_name, logging.INFO)
 
 

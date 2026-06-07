@@ -1,25 +1,14 @@
 """
 Tool permissions — maps tool names to allowed/known sets.
 
-This module replaces the previous placement of ``is_tool_permitted``
-and ``assert_tool_permitted`` in ``domain/safety.py``, which created
-a hexagonal-architecture violation (domain importing from config).
-
-The single source of truth for known tool names is now this module.
-``config/models.KNOWN_TOOL_NAMES`` has been removed; the set lives here.
+The single source of truth for known tool names is
+``config.models.KNOWN_TOOL_NAMES``. Keeping the set in config lets
+startup validation and tool registration share one contract.
 """
 
 from __future__ import annotations
 
-KNOWN_TOOL_NAMES: frozenset[str] = frozenset(
-    {
-        "ping",
-        "server_info",
-        "set_alarm",
-        "display_message",
-        "set_brightness",
-    },
-)
+from mqtt_mcp.config.models import KNOWN_TOOL_NAMES
 
 
 def is_tool_permitted(tool_name: str) -> bool:

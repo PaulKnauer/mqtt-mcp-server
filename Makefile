@@ -39,8 +39,9 @@ coverage: ensure-uv
 	$(UV) run pytest --cov --cov-report=term-missing
 
 audit:
-	# CVE-2026-4539 (pygments) has no fix release; ignored until upstream patch lands
-	# PYSEC-2026-196 (pip) is a build-environment tool, not a project dependency
+	# CVE-2026-4539 (pygments, <2.20.1, affects only rendered output at dev time)
+	#   No fix release as of 2026-06-06. Revisit next quarter.
+	# PYSEC-2026-196 (pip 26.1, build-env only — not a shipped dependency)
 	$(UV) run pip-audit --ignore-vuln CVE-2026-4539 --ignore-vuln PYSEC-2026-196
 
 build-check: ensure-uv

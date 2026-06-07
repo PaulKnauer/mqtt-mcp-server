@@ -3,7 +3,8 @@
 Usage:
     python -m mqtt_mcp
 
-Runs preflight validation, creates the server, and starts the transport.
+Runs preflight validation, creates the server (including MQTT connection),
+and starts the stdio transport.
 """
 
 from __future__ import annotations
@@ -23,11 +24,10 @@ def main() -> None:
         stream=sys.stderr,
     )
 
-    try:
-        config = run_preflight()
-    except SystemExit:
-        sys.exit(1)
+    config = run_preflight()
 
+    # create_server connects the MQTT adapter — any failure propagates
+    # as DispatchError, causing a clean exit with a useful log message.
     app = create_server(config)
     app.run(transport="stdio")
 

@@ -43,7 +43,7 @@ def validate_alarm_time(alarm_time: datetime) -> datetime:
     """Validate that an alarm time is in the future.
 
     Args:
-        alarm_time: The proposed alarm time.
+        alarm_time: The proposed alarm time (must be timezone-aware UTC).
 
     Returns:
         The alarm time if valid.
@@ -56,7 +56,8 @@ def validate_alarm_time(alarm_time: datetime) -> datetime:
     if alarm_time.tzinfo is None:
         alarm_time = alarm_time.replace(tzinfo=UTC)
     # Allow up to 1 minute in the past for clock skew
-    if alarm_time < datetime.fromtimestamp(now.timestamp() - 60, tz=UTC):
+    grace_period = 60.0
+    if alarm_time.timestamp() < now.timestamp() - grace_period:
         raise PastAlarmTime(alarm_time.isoformat())
     return alarm_time
 
@@ -111,30 +112,3 @@ def validate_device_id(device_id: str) -> str:
     if not _DEVICE_ID_PATTERN.match(device_id):
         raise InvalidDeviceId(device_id)
     return device_id
-
-
-def is_tool_permitted(tool_name: str) -> bool:
-    """Return True if the named tool is allowed under the current config.
-
-    Args:
-        tool_name: The MCP tool name to check.
-    """
-    from mqtt_mcp.config.models import KNOWN_TOOL_NAMES
-
-    return tool_name in KNOWN_TOOL_NAMES
-
-
-def assert_tool_permitted(tool_name: str) -> None:
-    """Raise ValueError if the tool name is unknown.
-
-    Args:
-        tool_name: The MCP tool name to check.
-
-    Raises:
-        ValueError: if the tool name is not in KNOWN_TOOL_NAMES.
-    """
-    if not is_tool_permitted(tool_name):
-        from mqtt_mcp.config.models import KNOWN_TOOL_NAMES
-
-        allowed_tools = ", ".join(sorted(KNOWN_TOOL_NAMES))
-        raise ValueError(f"Unknown tool: {tool_name}. Allowed values: {allowed_tools}.")

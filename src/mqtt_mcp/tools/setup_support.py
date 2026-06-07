@@ -4,16 +4,22 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
+from mqtt_mcp.adapters.mqtt_adapter import MqttAdapter
 from mqtt_mcp.config.models import AuthMode, MqttConfig
-from mqtt_mcp.domain.safety import assert_tool_permitted
+from mqtt_mcp.tools.permissions import assert_tool_permitted
 
 
-def register_setup_support(app: FastMCP, config: MqttConfig) -> None:
+def register_setup_support(
+    app: FastMCP,
+    config: MqttConfig,
+    adapter: MqttAdapter,
+) -> None:
     """Register ping and server_info tools.
 
     Args:
         app: The FastMCP application.
         config: The server configuration.
+        adapter: The MQTT adapter (used to report real connection state).
     """
 
     @app.tool(name="ping")
@@ -32,7 +38,7 @@ def register_setup_support(app: FastMCP, config: MqttConfig) -> None:
         assert_tool_permitted("server_info")
         return {
             "version": "0.1.0",
-            "mqtt_connected": False,
+            "mqtt_connected": adapter.is_ready(),
             "topic_prefix": config.topic_prefix,
             "auth_enabled": config.auth_mode != AuthMode.NONE,
         }

@@ -7,14 +7,13 @@ dispatches via ClockService, and returns structured results.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
 from mcp.server.fastmcp import FastMCP
 
 from mqtt_mcp.config.models import AuthMode, MqttConfig
-from mqtt_mcp.domain.exceptions import DomainError
+from mqtt_mcp.domain.exceptions import DomainError, Unauthorized
 from mqtt_mcp.domain.safety import (
-    assert_tool_permitted,
     check_brightness_level,
     check_duration,
     check_message,
@@ -22,35 +21,42 @@ from mqtt_mcp.domain.safety import (
     validate_device_id,
 )
 from mqtt_mcp.services.clock_service import ClockService
+from mqtt_mcp.tools.permissions import assert_tool_permitted
 
 logger = logging.getLogger("mqtt_mcp")
 
-# Module-level state set by register_commands()
-_clock_service: ClockService | None = None
-_config: MqttConfig | None = None
 
+def _authenticate(config: MqttConfig, token: str | None, device_id: str | None) -> None:
+    """Verify bearer token and device scope if auth is enabled.
 
-def _get_clock_service() -> ClockService:
-    """Get the clock service, raising if not initialized."""
-    if _clock_service is None:
-        raise RuntimeError("Clock service not initialized")
-    return _clock_service
+    Performs constant-time token comparison and device-scope matching.
+    Skips all checks when auth_mode is ``none``.
 
+    Args:
+        config: Server config (contains auth mode and credential info).
+        token: Bearer token from the request, or ``None``.
+        device_id: Target device ID for scope enforcement, or ``None``.
 
-def _authenticate(token: str | None) -> None:
-    """Verify bearer token if auth is enabled."""
-    from mqtt_mcp.auth import verify_token
+    Raises:
+        Unauthorized: if token is missing or invalid.
+        ForbiddenDevice: if token is valid but scope doesn't cover the device.
+    """
+    from mqtt_mcp.auth import check_device_authorization, verify_token
     from mqtt_mcp.config.validation import get_credentials
-    from mqtt_mcp.domain.exceptions import Unauthorized
 
-    if _config is None or _config.auth_mode == AuthMode.NONE:
+    if config.auth_mode == AuthMode.NONE:
         return
 
     if not token:
         raise Unauthorized("Missing bearer token")
 
     creds = get_credentials()
-    verify_token(token, creds)
+    # verify_token raises Unauthorized on mismatch (constant-time comparison)
+    matched_cred = verify_token(token, creds)
+
+    # Enforce device-scope authorization
+    if device_id is not None:
+        check_device_authorization(matched_cred, device_id)
 
 
 def _safe_error(exc: DomainError) -> dict[str, object]:
@@ -63,15 +69,48 @@ def _safe_error(exc: DomainError) -> dict[str, object]:
     }
 
 
+def _parse_rfc3339(value: str) -> datetime | None:
+    """Parse an RFC3339 datetime string, returning None on invalid input.
+
+    Only accepts full datetime strings (date + time + UTC timezone).
+    Rejects bare dates, non-UTC timezones, and unparseable input.
+    """
+    try:
+        normalised = value.replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(normalised)
+    except (ValueError, TypeError):
+        return None
+
+    # Reject date-only strings (no T separator means no time component)
+    if "T" not in value:
+        return None
+
+    # Normalise to UTC — reject non-UTC timezones
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    else:
+        utc_offset = parsed.utcoffset()
+        if utc_offset is None or utc_offset.total_seconds() != 0:
+            return None
+
+    return parsed
+
+
 def register_commands(
     app: FastMCP,
     config: MqttConfig,
     clock_service: ClockService,
 ) -> None:
-    """Register set_alarm, display_message, and set_brightness tools."""
-    global _clock_service, _config
-    _clock_service = clock_service
-    _config = config
+    """Register set_alarm, display_message, and set_brightness tools.
+
+    Each tool handler captures ``config`` and ``clock_service`` in its
+    closure — no module-level globals are used.
+
+    Args:
+        app: The FastMCP application.
+        config: Server configuration.
+        clock_service: Service for dispatching MQTT commands.
+    """
 
     @app.tool(name="set_alarm")
     def set_alarm(
@@ -82,14 +121,16 @@ def register_commands(
     ) -> dict[str, object]:
         """Set an alarm on a smart clock device."""
         assert_tool_permitted("set_alarm")
-        _authenticate(token)
+        _authenticate(config, token, device_id)
 
         try:
             validate_device_id(device_id)
             parsed_time = _parse_rfc3339(alarm_time)
+            if parsed_time is None:
+                return {"error": "Invalid alarm_time format; expected RFC3339 UTC"}
             validate_alarm_time(parsed_time)
 
-            result = _get_clock_service().dispatch_command(
+            result = clock_service.dispatch_command(
                 device_id=device_id,
                 command_type="set_alarm",
                 payload={
@@ -112,14 +153,14 @@ def register_commands(
     ) -> dict[str, object]:
         """Display a message on a smart clock device."""
         assert_tool_permitted("display_message")
-        _authenticate(token)
+        _authenticate(config, token, device_id)
 
         try:
             validate_device_id(device_id)
             check_message(message)
             check_duration(duration_seconds)
 
-            result = _get_clock_service().dispatch_command(
+            result = clock_service.dispatch_command(
                 device_id=device_id,
                 command_type="display_message",
                 payload={
@@ -141,13 +182,13 @@ def register_commands(
     ) -> dict[str, object]:
         """Set the screen brightness on a smart clock device."""
         assert_tool_permitted("set_brightness")
-        _authenticate(token)
+        _authenticate(config, token, device_id)
 
         try:
             validate_device_id(device_id)
             check_brightness_level(level)
 
-            result = _get_clock_service().dispatch_command(
+            result = clock_service.dispatch_command(
                 device_id=device_id,
                 command_type="set_brightness",
                 payload={
@@ -159,8 +200,3 @@ def register_commands(
             return dict(result)
         except DomainError as exc:
             return _safe_error(exc)
-
-
-def _parse_rfc3339(value: str) -> datetime:
-    """Parse an RFC3339 datetime string."""
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))

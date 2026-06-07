@@ -4,10 +4,10 @@ version = "0.1.0"
 description = "MCP server for smart clock devices"
 requires-python = ">=3.12"
 dependencies = [
-    "mcp[cli]>=1.26.0",
-    "paho-mqtt>=2.0.0",
-    "pydantic>=2.0.0",
-    "python-dotenv>=1.2.2",
+    "mcp[cli]>=1.26.0,<2.0.0",
+    "paho-mqtt>=2.0.0,<3.0.0",
+    "pydantic>=2.0.0,<3.0.0",
+    "python-dotenv>=1.2.2,<2.0.0",
 ]
 
 [project.scripts]
@@ -52,7 +52,9 @@ module = [
     "mqtt_mcp.services.*",
     "mqtt_mcp.tools.*",
 ]
-disable_error_code = ["attr-defined", "arg-type", "operator"]
+# paho-mqtt stubs are incomplete — disable only specific known gaps,
+# not the entire package. Remove as stub coverage improves.
+disable_error_code = ["attr-defined"]
 
 [tool.coverage.run]
 source = ["src/mqtt_mcp"]

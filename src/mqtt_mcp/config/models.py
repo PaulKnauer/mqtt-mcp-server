@@ -9,16 +9,6 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field, SecretStr, field_validator
 
-KNOWN_TOOL_NAMES: frozenset[str] = frozenset(
-    {
-        "ping",
-        "server_info",
-        "set_alarm",
-        "display_message",
-        "set_brightness",
-    }
-)
-
 
 class AuthMode(StrEnum):
     """Supported authentication modes."""

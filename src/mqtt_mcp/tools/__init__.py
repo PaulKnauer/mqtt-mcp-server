@@ -1,7 +1,8 @@
 """MCP tool registration — the single assembly point for all tools.
 
-``register_all()`` instantiates adapters and services and wires them
-into MCP tool handlers.
+``register_all()`` wires adapters and services into MCP tool handlers.
+The MQTT adapter is created in ``server.py`` (the composition root)
+and injected here — this module does NOT instantiate it.
 """
 
 from __future__ import annotations
@@ -19,17 +20,17 @@ from mqtt_mcp.tools.setup_support import register_setup_support
 logger = logging.getLogger("mqtt_mcp")
 
 
-def register_all(app: FastMCP, config: MqttConfig) -> None:
-    """Create all adapters, services, and register all MCP tools.
+def register_all(app: FastMCP, config: MqttConfig, adapter: MqttAdapter) -> None:
+    """Create all services and register all MCP tools.
 
     Args:
         app: The FastMCP application instance.
         config: The validated server configuration.
+        adapter: A connected MQTT adapter instance.
     """
-    adapter = MqttAdapter()
     clock_service = ClockService(adapter, config)
 
-    register_setup_support(app, config)
+    register_setup_support(app, config, adapter)
     register_commands(app, config, clock_service)
 
     logger.info(

@@ -1,4 +1,5 @@
-"""Typed configuration models for MQTT MCP server.
+"""
+Typed configuration models for MQTT MCP server.
 
 Uses Pydantic for validation, matching sonos-mcp-server's config pattern.
 """

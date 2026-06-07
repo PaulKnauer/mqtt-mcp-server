@@ -1,4 +1,5 @@
-"""Clock service — business logic for dispatching commands to smart clocks.
+"""
+Clock service — business logic for dispatching commands to smart clocks.
 
 Validates commands through domain safety rules and publishes them
 via the MQTT adapter.
@@ -18,17 +19,20 @@ logger = logging.getLogger("mqtt_mcp")
 
 
 class ClockService:
-    """Service for dispatching commands to smart clock devices.
+    """
+    Service for dispatching commands to smart clock devices.
 
     Validates commands and publishes them via MQTT.
     """
 
     def __init__(self, adapter: MqttAdapter, config: MqttConfig) -> None:
-        """Initialize the clock service.
+        """
+        Initialize the clock service.
 
         Args:
             adapter: MQTT adapter for publishing commands.
             config: Server configuration (topic prefix, QoS, etc.).
+
         """
         self._adapter = adapter
         self._topic_prefix = config.topic_prefix
@@ -40,7 +44,8 @@ class ClockService:
         command_type: str,
         payload: dict[str, Any],
     ) -> dict[str, str]:
-        """Validate and dispatch a command to a smart clock device.
+        """
+        Validate and dispatch a command to a smart clock device.
 
         Args:
             device_id: Target device identifier.
@@ -53,7 +58,8 @@ class ClockService:
         Raises:
             DomainError: if validation fails.
             DispatchError: if MQTT publish fails.
-            ForbiddenDevice: if the auth principal is not authorized.
+            ForbiddenDeviceError: if the auth principal is not authorized.
+
         """
         validate_device_id(device_id)
 
@@ -73,7 +79,8 @@ class ClockService:
 
     @staticmethod
     def _result_for(command_type: str) -> dict[str, str]:
-        """Return the success result dict for a command type.
+        """
+        Return the success result dict for a command type.
 
         Matches clock-server's response contract:
         - set_alarm → {"result": "scheduled"}

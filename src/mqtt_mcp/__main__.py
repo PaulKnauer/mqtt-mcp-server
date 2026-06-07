@@ -1,4 +1,5 @@
-"""CLI entry point for MQTT MCP server.
+"""
+CLI entry point for MQTT MCP server.
 
 Usage:
     python -m mqtt_mcp
@@ -17,7 +18,7 @@ from mqtt_mcp.server import create_server
 
 
 def main() -> None:
-    """Main entry point for the MQTT MCP server."""
+    """Run the MQTT MCP server CLI entry point."""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",

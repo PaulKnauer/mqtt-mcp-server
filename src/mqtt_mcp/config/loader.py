@@ -1,4 +1,5 @@
-"""Configuration loading and normalization for MQTT MCP server.
+"""
+Configuration loading and normalization for MQTT MCP server.
 
 Reads `.env` and environment variables, applies defaults, and produces a
 validated MqttConfig. Independent of transports and MQTT operations.
@@ -30,7 +31,8 @@ _ENV_MAP: dict[str, str] = {
 
 
 def load_config(overrides: dict[str, Any] | None = None) -> MqttConfig:
-    """Load and validate configuration.
+    """
+    Load and validate configuration.
 
     Resolution order (last wins):
       1. Hardcoded defaults

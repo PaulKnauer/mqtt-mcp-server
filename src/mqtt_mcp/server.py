@@ -1,4 +1,5 @@
-"""Application composition boundary for MQTT MCP server.
+"""
+Application composition boundary for MQTT MCP server.
 
 ``create_server()`` is the single place where the MCP application is assembled.
 The MQTT adapter is created and connected here (the composition root).
@@ -18,7 +19,8 @@ log = logging.getLogger("mqtt_mcp")
 
 
 def create_server(config: MqttConfig) -> FastMCP:
-    """Create, connect, and configure the FastMCP application.
+    """
+    Create, connect, and configure the FastMCP application.
 
     Instantiates the MQTT adapter and connects it to the broker
     before registering any tools. This is the single composition
@@ -33,6 +35,7 @@ def create_server(config: MqttConfig) -> FastMCP:
 
     Raises:
         DispatchError: if MQTT broker connection fails.
+
     """
     adapter = MqttAdapter()
     adapter.connect(

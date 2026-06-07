@@ -14,26 +14,30 @@ def register_setup_support(
     config: MqttConfig,
     adapter: MqttAdapter,
 ) -> None:
-    """Register ping and server_info tools.
+    """
+    Register ping and server_info tools.
 
     Args:
         app: The FastMCP application.
         config: The server configuration.
         adapter: The MQTT adapter (used to report real connection state).
+
     """
 
     @app.tool(name="ping")
     def ping() -> dict[str, str]:
-        """Simple liveness check. Returns immediately with no side effects."""
+        """Return a simple liveness response."""
         assert_tool_permitted("ping")
         return {"status": "ok"}
 
     @app.tool(name="server_info")
     def server_info() -> dict[str, object]:
-        """Return server metadata including MQTT broker status and config.
+        """
+        Return server metadata including MQTT broker status and config.
 
         Returns:
             Dict with version, mqtt_connected, topic_prefix, and auth_enabled.
+
         """
         assert_tool_permitted("server_info")
         return {

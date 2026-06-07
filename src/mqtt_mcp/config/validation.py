@@ -1,4 +1,5 @@
-"""Preflight configuration validation for MQTT MCP server.
+"""
+Preflight configuration validation for MQTT MCP server.
 
 Runs at startup to validate configuration, authentication credentials,
 and MQTT broker connectivity before accepting MCP tool calls.
@@ -20,13 +21,15 @@ _credentials: list[Any] | None = None
 
 
 def get_credentials() -> list[Any]:
-    """Return the cached parsed credentials.
+    """
+    Return the cached parsed credentials.
 
     Returns:
         List of parsed Credential objects.
 
     Raises:
         RuntimeError: if preflight has not been run yet.
+
     """
     if _credentials is None:
         raise RuntimeError("Preflight has not been run; credentials not loaded")
@@ -34,7 +37,8 @@ def get_credentials() -> list[Any]:
 
 
 def run_preflight(config: MqttConfig | None = None) -> MqttConfig:
-    """Run startup preflight checks.
+    """
+    Run startup preflight checks.
 
     Loads and validates configuration, parses auth credentials,
     and prepares the server for operation.
@@ -48,6 +52,7 @@ def run_preflight(config: MqttConfig | None = None) -> MqttConfig:
 
     Raises:
         SystemExit: if validation fails (non-zero exit).
+
     """
     global _credentials
 
@@ -88,12 +93,14 @@ def run_preflight(config: MqttConfig | None = None) -> MqttConfig:
 
 
 def ensure_preflight_ready(config: MqttConfig) -> None:
-    """Additional preflight checks that require external resources.
+    """
+    Additional preflight checks that require external resources.
 
     Verifies MQTT broker connectivity at startup.
 
     Args:
         config: The validated MqttConfig.
+
     """
     # Future: MQTT broker connectivity check
     pass

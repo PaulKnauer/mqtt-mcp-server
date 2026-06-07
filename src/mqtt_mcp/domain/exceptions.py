@@ -1,4 +1,5 @@
-"""Domain-specific exception types for MQTT MCP server.
+"""
+Domain-specific exception types for MQTT MCP server.
 
 Typed exceptions allow services and tools to distinguish
 validation failures from infrastructure errors.
@@ -21,7 +22,7 @@ class ErrorCategory(StrEnum):
 class MqttMCPError(Exception):
     """Base exception for all MQTT MCP server errors."""
 
-    def __init__(self, message: str, category: ErrorCategory = ErrorCategory.INTERNAL) -> None:
+    def __init__(self, message: str, category: ErrorCategory = ErrorCategory.INTERNAL) -> None:  # noqa: D107
         self.category = category
         super().__init__(message)
 
@@ -29,7 +30,7 @@ class MqttMCPError(Exception):
 class DomainError(MqttMCPError):
     """Base for domain validation errors."""
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         message: str,
         field: str | None = None,
@@ -40,10 +41,10 @@ class DomainError(MqttMCPError):
         super().__init__(message, ErrorCategory.VALIDATION)
 
 
-class BrightnessOutOfRange(DomainError):
+class BrightnessOutOfRangeError(DomainError):
     """Raised when brightness level is outside 0-100."""
 
-    def __init__(self, level: int) -> None:
+    def __init__(self, level: int) -> None:  # noqa: D107
         super().__init__(
             message=f"Brightness must be 0-100, got {level}",
             field="level",
@@ -51,10 +52,10 @@ class BrightnessOutOfRange(DomainError):
         )
 
 
-class EmptyMessage(DomainError):
+class EmptyMessageError(DomainError):
     """Raised when message is empty or whitespace only."""
 
-    def __init__(self) -> None:
+    def __init__(self) -> None:  # noqa: D107
         super().__init__(
             message="Message must not be empty",
             field="message",
@@ -62,10 +63,10 @@ class EmptyMessage(DomainError):
         )
 
 
-class DurationOutOfRange(DomainError):
+class DurationOutOfRangeError(DomainError):
     """Raised when duration is outside 1-3600."""
 
-    def __init__(self, duration: int) -> None:
+    def __init__(self, duration: int) -> None:  # noqa: D107
         super().__init__(
             message=f"Duration must be 1-3600 seconds, got {duration}",
             field="durationSeconds",
@@ -73,10 +74,10 @@ class DurationOutOfRange(DomainError):
         )
 
 
-class PastAlarmTime(DomainError):
+class PastAlarmTimeError(DomainError):
     """Raised when alarm time is in the past."""
 
-    def __init__(self, alarm_time: str) -> None:
+    def __init__(self, alarm_time: str) -> None:  # noqa: D107
         super().__init__(
             message=f"Alarm time must be in the future, got {alarm_time}",
             field="alarmTime",
@@ -84,10 +85,10 @@ class PastAlarmTime(DomainError):
         )
 
 
-class InvalidDeviceId(DomainError):
+class InvalidDeviceIdError(DomainError):
     """Raised when device ID format is invalid."""
 
-    def __init__(self, device_id: str) -> None:
+    def __init__(self, device_id: str) -> None:  # noqa: D107
         super().__init__(
             message=f"Invalid device ID: {device_id}",
             field="deviceId",
@@ -95,17 +96,17 @@ class InvalidDeviceId(DomainError):
         )
 
 
-class Unauthorized(MqttMCPError):
+class UnauthorizedError(MqttMCPError):
     """Raised when authentication fails."""
 
-    def __init__(self, message: str = "unauthorized") -> None:
+    def __init__(self, message: str = "unauthorized") -> None:  # noqa: D107
         super().__init__(message, ErrorCategory.AUTH)
 
 
-class ForbiddenDevice(MqttMCPError):
+class ForbiddenDeviceError(MqttMCPError):
     """Raised when the credential scope does not cover the target device."""
 
-    def __init__(self, device_id: str) -> None:
+    def __init__(self, device_id: str) -> None:  # noqa: D107
         super().__init__(
             message=f"forbidden for target device: {device_id}",
             category=ErrorCategory.AUTH,
@@ -115,5 +116,5 @@ class ForbiddenDevice(MqttMCPError):
 class DispatchError(MqttMCPError):
     """Raised when MQTT publish fails."""
 
-    def __init__(self, message: str) -> None:
+    def __init__(self, message: str) -> None:  # noqa: D107
         super().__init__(message, ErrorCategory.DISPATCH)

@@ -11,13 +11,13 @@ from mqtt_mcp.config.validation import run_preflight
 class TestRunPreflight:
     """Preflight validation passes with valid config."""
 
-    def test_returns_validated_config(self) -> None:
+    def test_returns_validated_config(self) -> None:  # noqa: D102
         config = MqttConfig(broker_url="mqtt://localhost:1883")
         result = run_preflight(config)
         assert result is config
         assert result.broker_url == "mqtt://localhost:1883"
 
-    def test_parses_auth_credentials_with_static_auth(self) -> None:
+    def test_parses_auth_credentials_with_static_auth(self) -> None:  # noqa: D102
         config = MqttConfig(
             broker_url="mqtt://localhost:1883",
             auth_mode=AuthMode.STATIC,
@@ -41,16 +41,16 @@ class TestRunPreflight:
 
             v._credentials = None
 
-    def test_raises_system_exit_on_invalid_auth_credentials(self) -> None:
+    def test_raises_system_exit_on_invalid_auth_credentials(self) -> None:  # noqa: D102
         with pytest.raises(SystemExit):
             run_preflight(
                 MqttConfig(
                     broker_url="mqtt://localhost:1883",
                     auth_mode=AuthMode.STATIC,
-                )
+                ),
             )
 
-    def test_no_auth_does_not_parse_credentials(self) -> None:
+    def test_no_auth_does_not_parse_credentials(self) -> None:  # noqa: D102
         config = MqttConfig(broker_url="mqtt://localhost:1883", auth_mode=AuthMode.NONE)
         result = run_preflight(config)
         assert result.auth_mode == AuthMode.NONE

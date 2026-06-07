@@ -9,7 +9,7 @@ from mqtt_mcp.config.models import AuthMode, MqttConfig
 
 @pytest.fixture
 def minimal_config() -> MqttConfig:
-    """A minimal valid config for unit tests."""
+    """A minimal valid config for unit tests."""  # noqa: D401
     return MqttConfig(
         broker_url="mqtt://localhost:1883",
     )

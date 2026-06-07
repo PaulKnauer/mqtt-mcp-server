@@ -1,4 +1,5 @@
-"""MQTT adapter wrapping paho-mqtt for clock command publishing.
+"""
+MQTT adapter wrapping paho-mqtt for clock command publishing.
 
 Provides connect, publish, and disconnect with connection retry,
 automatic reconnection via paho-mqtt callbacks, and typed error handling.
@@ -24,7 +25,8 @@ _KEEPALIVE_S = 60
 
 
 class MqttAdapter:
-    """paho-mqtt wrapper for publishing clock commands.
+    """
+    paho-mqtt wrapper for publishing clock commands.
 
     Provides a simple interface for connecting to a broker,
     publishing messages, and clean disconnection. On unexpected
@@ -34,7 +36,7 @@ class MqttAdapter:
     This class is NOT thread-safe. Call from a single thread.
     """
 
-    def __init__(self) -> None:
+    def __init__(self) -> None:  # noqa: D107
         self._client: mqtt.Client | None = None
         self._connected = False
 
@@ -44,7 +46,8 @@ class MqttAdapter:
         username: str | None = None,
         password: str | None = None,
     ) -> None:
-        """Connect to the MQTT broker with retry and exponential backoff.
+        """
+        Connect to the MQTT broker with retry and exponential backoff.
 
         Registers an ``on_disconnect`` callback that triggers
         automatic reconnection so transient broker outages are
@@ -57,6 +60,7 @@ class MqttAdapter:
 
         Raises:
             DispatchError: if connection fails after all retries.
+
         """
         parsed = urlparse(broker_url)
         host = parsed.hostname or "localhost"
@@ -106,14 +110,15 @@ class MqttAdapter:
                 if attempt < _MAX_RETRIES:
                     # Exponential backoff with jitter
                     delay = _RETRY_DELAY_S * (2 ** (attempt - 1)) + random.uniform(
-                        0, 0.5 * _RETRY_DELAY_S
+                        0,
+                        0.5 * _RETRY_DELAY_S,
                     )
                     time.sleep(delay)
 
         self._connected = False
         raise DispatchError(
             f"Failed to connect to MQTT broker at {broker_url} "
-            f"after {_MAX_RETRIES} attempts: {last_error}"
+            f"after {_MAX_RETRIES} attempts: {last_error}",
         )
 
     def _on_disconnect(
@@ -123,7 +128,8 @@ class MqttAdapter:
         rc: int,
         properties: object = None,
     ) -> None:
-        """Called by paho-mqtt when the connection drops unexpectedly.
+        """
+        Handle paho-mqtt disconnection callback.
 
         If rc == 0 the disconnect was intentional (called via
         ``client.disconnect()``).  Otherwise the broker went away
@@ -136,7 +142,8 @@ class MqttAdapter:
             logger.info("MQTT connection closed cleanly")
 
     def publish(self, topic: str, payload: str, qos: int = 1) -> None:
-        """Publish a message to a topic.
+        """
+        Publish a message to a topic.
 
         Args:
             topic: The MQTT topic to publish to.
@@ -145,6 +152,7 @@ class MqttAdapter:
 
         Raises:
             DispatchError: if publish fails or client is not connected.
+
         """
         if not self._connected or self._client is None:
             raise DispatchError("MQTT client is not connected")

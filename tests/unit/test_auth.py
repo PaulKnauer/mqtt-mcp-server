@@ -10,13 +10,13 @@ from mqtt_mcp.auth import (
     parse_credentials,
     verify_token,
 )
-from mqtt_mcp.domain.exceptions import ForbiddenDevice, Unauthorized
+from mqtt_mcp.domain.exceptions import ForbiddenDeviceError, UnauthorizedError
 
 
 class TestParseCredentials:
     """Credential parsing from config strings."""
 
-    def test_parses_multi_credential_format(self) -> None:
+    def test_parses_multi_credential_format(self) -> None:  # noqa: D102
         creds = parse_credentials("admin|secret123|*;user2|token456|clock-1,clock-2", None)
         assert len(creds) == 2
         assert creds[0].id == "admin"
@@ -26,33 +26,33 @@ class TestParseCredentials:
         assert creds[1].token == "token456"
         assert creds[1].devices == ["clock-1", "clock-2"]
 
-    def test_parses_single_credential(self) -> None:
+    def test_parses_single_credential(self) -> None:  # noqa: D102
         creds = parse_credentials("admin|secret|*", None)
         assert len(creds) == 1
         assert creds[0].token == "secret"
 
-    def test_legacy_auth_token_fallback(self) -> None:
+    def test_legacy_auth_token_fallback(self) -> None:  # noqa: D102
         creds = parse_credentials(None, "legacy-token")
         assert len(creds) == 1
         assert creds[0].token == "legacy-token"
         assert creds[0].devices == ["*"]
         assert creds[0].id == "default"
 
-    def test_credentials_beats_legacy_token(self) -> None:
+    def test_credentials_beats_legacy_token(self) -> None:  # noqa: D102
         creds = parse_credentials("admin|secret|*", "legacy-token")
         assert len(creds) == 1
         assert creds[0].token == "secret"
 
-    def test_raises_on_no_credentials(self) -> None:
+    def test_raises_on_no_credentials(self) -> None:  # noqa: D102
         with pytest.raises(ValueError, match="No valid credentials"):
             parse_credentials(None, None)
 
-    def test_skips_malformed_entries(self) -> None:
+    def test_skips_malformed_entries(self) -> None:  # noqa: D102
         creds = parse_credentials("onlyid;;admin|secret|*", None)
         assert len(creds) == 1
         assert creds[0].id == "admin"
 
-    def test_default_scope_is_wildcard(self) -> None:
+    def test_default_scope_is_wildcard(self) -> None:  # noqa: D102
         creds = parse_credentials("user|token", None)
         assert len(creds) == 1
         assert creds[0].devices == ["*"]
@@ -61,18 +61,18 @@ class TestParseCredentials:
 class TestVerifyToken:
     """Bearer token verification."""
 
-    def test_valid_token_returns_credential(self) -> None:
+    def test_valid_token_returns_credential(self) -> None:  # noqa: D102
         creds = [Credential(id="admin", token="secret123", devices=["*"])]
         result = verify_token("secret123", creds)
         assert result.id == "admin"
 
-    def test_invalid_token_raises(self) -> None:
+    def test_invalid_token_raises(self) -> None:  # noqa: D102
         creds = [Credential(id="admin", token="secret123", devices=["*"])]
-        with pytest.raises(Unauthorized):
+        with pytest.raises(UnauthorizedError):
             verify_token("wrong-token", creds)
 
-    def test_no_credentials_raises(self) -> None:
-        with pytest.raises(Unauthorized):
+    def test_no_credentials_raises(self) -> None:  # noqa: D102
+        with pytest.raises(UnauthorizedError):
             verify_token("anything", [])
 
     def test_constant_time_comparison(self) -> None:
@@ -85,40 +85,40 @@ class TestVerifyToken:
 class TestCheckDeviceAuthorization:
     """Device scope checking."""
 
-    def test_wildcard_scope_allows_all(self) -> None:
+    def test_wildcard_scope_allows_all(self) -> None:  # noqa: D102
         cred = Credential(id="admin", token="t", devices=["*"])
         # Should not raise
         check_device_authorization(cred, "clock-1")
         check_device_authorization(cred, "clock-kitchen")
         check_device_authorization(cred, "any-device")
 
-    def test_exact_scope_allows_matching(self) -> None:
+    def test_exact_scope_allows_matching(self) -> None:  # noqa: D102
         cred = Credential(id="user", token="t", devices=["clock-1"])
         check_device_authorization(cred, "clock-1")
 
-    def test_exact_scope_denies_other(self) -> None:
+    def test_exact_scope_denies_other(self) -> None:  # noqa: D102
         cred = Credential(id="user", token="t", devices=["clock-1"])
-        with pytest.raises(ForbiddenDevice):
+        with pytest.raises(ForbiddenDeviceError):
             check_device_authorization(cred, "clock-2")
 
-    def test_prefix_scope_allows_matching(self) -> None:
+    def test_prefix_scope_allows_matching(self) -> None:  # noqa: D102
         cred = Credential(id="user", token="t", devices=["clock-*"])
         check_device_authorization(cred, "clock-1")
         check_device_authorization(cred, "clock-kitchen")
         check_device_authorization(cred, "clock-")
 
-    def test_prefix_scope_denies_non_matching(self) -> None:
+    def test_prefix_scope_denies_non_matching(self) -> None:  # noqa: D102
         cred = Credential(id="user", token="t", devices=["clock-*"])
-        with pytest.raises(ForbiddenDevice):
+        with pytest.raises(ForbiddenDeviceError):
             check_device_authorization(cred, "other-device")
 
-    def test_multiple_scopes_any_can_match(self) -> None:
+    def test_multiple_scopes_any_can_match(self) -> None:  # noqa: D102
         cred = Credential(id="user", token="t", devices=["clock-1", "clock-2"])
         check_device_authorization(cred, "clock-2")
-        with pytest.raises(ForbiddenDevice):
+        with pytest.raises(ForbiddenDeviceError):
             check_device_authorization(cred, "clock-3")
 
-    def test_forbidden_error_contains_device_id(self) -> None:
+    def test_forbidden_error_contains_device_id(self) -> None:  # noqa: D102
         cred = Credential(id="user", token="t", devices=["clock-1"])
-        with pytest.raises(ForbiddenDevice, match="clock-3"):
+        with pytest.raises(ForbiddenDeviceError, match="clock-3"):
             check_device_authorization(cred, "clock-3")

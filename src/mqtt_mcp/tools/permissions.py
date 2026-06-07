@@ -1,4 +1,5 @@
-"""Tool permissions — maps tool names to allowed/known sets.
+"""
+Tool permissions — maps tool names to allowed/known sets.
 
 This module replaces the previous placement of ``is_tool_permitted``
 and ``assert_tool_permitted`` in ``domain/safety.py``, which created
@@ -17,27 +18,31 @@ KNOWN_TOOL_NAMES: frozenset[str] = frozenset(
         "set_alarm",
         "display_message",
         "set_brightness",
-    }
+    },
 )
 
 
 def is_tool_permitted(tool_name: str) -> bool:
-    """Return True if the named tool is known to the server.
+    """
+    Return True if the named tool is known to the server.
 
     Args:
         tool_name: The MCP tool name to check.
+
     """
     return tool_name in KNOWN_TOOL_NAMES
 
 
 def assert_tool_permitted(tool_name: str) -> None:
-    """Raise ValueError if the tool name is unknown.
+    """
+    Raise ValueError if the tool name is unknown.
 
     Args:
         tool_name: The MCP tool name to check.
 
     Raises:
         ValueError: if the tool name is not in KNOWN_TOOL_NAMES.
+
     """
     if not is_tool_permitted(tool_name):
         allowed_tools = ", ".join(sorted(KNOWN_TOOL_NAMES))

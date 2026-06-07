@@ -12,12 +12,12 @@ from mqtt_mcp.tools.commands import register_commands
 
 
 @pytest.fixture
-def config() -> MqttConfig:
+def config() -> MqttConfig:  # noqa: D103
     return MqttConfig(broker_url="mqtt://localhost:1883")
 
 
 @pytest.fixture
-def service(config: MqttConfig) -> ClockService:
+def service(config: MqttConfig) -> ClockService:  # noqa: D103
     adapter = MagicMock()
     return ClockService(adapter, config)
 
@@ -44,14 +44,14 @@ def tools(config: MqttConfig, service: ClockService):
 class TestSetAlarm:
     """set_alarm tool validations and dispatch."""
 
-    def test_set_alarm_dispatches_correctly(self, tools: dict) -> None:
+    def test_set_alarm_dispatches_correctly(self, tools: dict) -> None:  # noqa: D102
         result = tools["set_alarm"].fn(
             device_id="clock-1",
             alarm_time="2030-01-01T07:00:00Z",
         )
         assert result == {"result": "scheduled"}
 
-    def test_set_alarm_with_label(self, tools: dict) -> None:
+    def test_set_alarm_with_label(self, tools: dict) -> None:  # noqa: D102
         result = tools["set_alarm"].fn(
             device_id="clock-1",
             alarm_time="2030-01-01T07:00:00Z",
@@ -59,7 +59,7 @@ class TestSetAlarm:
         )
         assert result == {"result": "scheduled"}
 
-    def test_set_alarm_invalid_device_id(self, tools: dict) -> None:
+    def test_set_alarm_invalid_device_id(self, tools: dict) -> None:  # noqa: D102
         result = tools["set_alarm"].fn(
             device_id="bad/id",
             alarm_time="2030-01-01T07:00:00Z",
@@ -67,7 +67,7 @@ class TestSetAlarm:
         assert "error" in result
         assert result["field"] == "deviceId"
 
-    def test_set_alarm_past_time(self, tools: dict) -> None:
+    def test_set_alarm_past_time(self, tools: dict) -> None:  # noqa: D102
         result = tools["set_alarm"].fn(
             device_id="clock-1",
             alarm_time="2020-01-01T07:00:00Z",
@@ -79,7 +79,7 @@ class TestSetAlarm:
 class TestDisplayMessage:
     """display_message tool validations and dispatch."""
 
-    def test_display_message_dispatches(self, tools: dict) -> None:
+    def test_display_message_dispatches(self, tools: dict) -> None:  # noqa: D102
         result = tools["display_message"].fn(
             device_id="clock-1",
             message="Meeting in 5 minutes",
@@ -87,7 +87,7 @@ class TestDisplayMessage:
         )
         assert result == {"result": "sent"}
 
-    def test_display_message_empty(self, tools: dict) -> None:
+    def test_display_message_empty(self, tools: dict) -> None:  # noqa: D102
         result = tools["display_message"].fn(
             device_id="clock-1",
             message="",
@@ -96,7 +96,7 @@ class TestDisplayMessage:
         assert "error" in result
         assert result["field"] == "message"
 
-    def test_display_message_bad_duration(self, tools: dict) -> None:
+    def test_display_message_bad_duration(self, tools: dict) -> None:  # noqa: D102
         result = tools["display_message"].fn(
             device_id="clock-1",
             message="Hi",
@@ -109,14 +109,14 @@ class TestDisplayMessage:
 class TestSetBrightness:
     """set_brightness tool validations and dispatch."""
 
-    def test_set_brightness_dispatches(self, tools: dict) -> None:
+    def test_set_brightness_dispatches(self, tools: dict) -> None:  # noqa: D102
         result = tools["set_brightness"].fn(
             device_id="clock-1",
             level=75,
         )
         assert result == {"result": "updated"}
 
-    def test_set_brightness_too_high(self, tools: dict) -> None:
+    def test_set_brightness_too_high(self, tools: dict) -> None:  # noqa: D102
         result = tools["set_brightness"].fn(
             device_id="clock-1",
             level=150,
@@ -126,7 +126,7 @@ class TestSetBrightness:
         assert "0" in str(result.get("suggestion", ""))
         assert "100" in str(result.get("suggestion", ""))
 
-    def test_set_brightness_negative(self, tools: dict) -> None:
+    def test_set_brightness_negative(self, tools: dict) -> None:  # noqa: D102
         result = tools["set_brightness"].fn(
             device_id="clock-1",
             level=-1,

@@ -35,7 +35,12 @@ line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP"]
+select = ["E", "F", "I", "UP", "W", "N", "D", "COM"]
+# Docstring conventions: Google-style (Args/Returns/Raises)
+# D203/D211 conflict resolved by excluding D203
+# D212/D213 conflict resolved by excluding D212
+# COM812 disabled because ruff format already handles trailing commas
+ignore = ["D203", "D212", "COM812"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["mqtt_mcp"]

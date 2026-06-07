@@ -1,4 +1,5 @@
-"""Domain models for MQTT MCP server.
+"""
+Domain models for MQTT MCP server.
 
 Frozen dataclasses representing smart clock command concepts.
 These are transport-agnostic and shared across service and tool layers.
@@ -12,12 +13,14 @@ from datetime import datetime
 
 @dataclass(frozen=True)
 class SetAlarmCommand:
-    """Command to set an alarm on a smart clock device.
+    """
+    Command to set an alarm on a smart clock device.
 
     Attributes:
         device_id: Target device identifier (e.g. "clock-1").
         alarm_time: The scheduled alarm time in UTC.
         label: Optional human-readable alarm label.
+
     """
 
     device_id: str
@@ -27,12 +30,14 @@ class SetAlarmCommand:
 
 @dataclass(frozen=True)
 class DisplayMessageCommand:
-    """Command to display a message on a smart clock device.
+    """
+    Command to display a message on a smart clock device.
 
     Attributes:
         device_id: Target device identifier.
         message: The message text to display.
         duration_seconds: How long to display the message (1-3600).
+
     """
 
     device_id: str
@@ -42,11 +47,13 @@ class DisplayMessageCommand:
 
 @dataclass(frozen=True)
 class SetBrightnessCommand:
-    """Command to set screen brightness on a smart clock device.
+    """
+    Command to set screen brightness on a smart clock device.
 
     Attributes:
         device_id: Target device identifier.
         level: Brightness level 0-100.
+
     """
 
     device_id: str

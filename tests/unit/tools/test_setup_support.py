@@ -21,7 +21,7 @@ def _get_tool_fn(app, name):
 class TestPing:
     """ping tool returns status ok."""
 
-    def test_ping_returns_ok(self) -> None:
+    def test_ping_returns_ok(self) -> None:  # noqa: D102
         from mcp.server.fastmcp import FastMCP
 
         app = FastMCP("test")
@@ -35,7 +35,7 @@ class TestPing:
 class TestServerInfo:
     """server_info returns server metadata."""
 
-    def test_returns_default_fields(self) -> None:
+    def test_returns_default_fields(self) -> None:  # noqa: D102
         from mcp.server.fastmcp import FastMCP
 
         app = FastMCP("test")
@@ -49,7 +49,7 @@ class TestServerInfo:
         assert result["topic_prefix"] == "clocks/commands"
         assert result["auth_enabled"] is False
 
-    def test_reports_mqtt_connected(self) -> None:
+    def test_reports_mqtt_connected(self) -> None:  # noqa: D102
         from mcp.server.fastmcp import FastMCP
 
         app = FastMCP("test")
@@ -60,7 +60,7 @@ class TestServerInfo:
         result = _get_tool_fn(app, "server_info")()
         assert result["mqtt_connected"] is True
 
-    def test_auth_enabled_when_static(self) -> None:
+    def test_auth_enabled_when_static(self) -> None:  # noqa: D102
         from mcp.server.fastmcp import FastMCP
 
         app = FastMCP("test")
@@ -74,7 +74,7 @@ class TestServerInfo:
         result = _get_tool_fn(app, "server_info")()
         assert result["auth_enabled"] is True
 
-    def test_custom_topic_prefix(self) -> None:
+    def test_custom_topic_prefix(self) -> None:  # noqa: D102
         from mcp.server.fastmcp import FastMCP
 
         app = FastMCP("test")

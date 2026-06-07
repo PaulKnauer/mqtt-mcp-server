@@ -1,4 +1,5 @@
-"""MCP command tools — set_alarm, display_message, set_brightness.
+"""
+MCP command tools — set_alarm, display_message, set_brightness.
 
 Each tool validates inputs through domain safety, checks auth,
 dispatches via ClockService, and returns structured results.
@@ -12,7 +13,7 @@ from datetime import UTC, datetime
 from mcp.server.fastmcp import FastMCP
 
 from mqtt_mcp.config.models import AuthMode, MqttConfig
-from mqtt_mcp.domain.exceptions import DomainError, Unauthorized
+from mqtt_mcp.domain.exceptions import DomainError, UnauthorizedError
 from mqtt_mcp.domain.safety import (
     check_brightness_level,
     check_duration,
@@ -27,7 +28,8 @@ logger = logging.getLogger("mqtt_mcp")
 
 
 def _authenticate(config: MqttConfig, token: str | None, device_id: str | None) -> None:
-    """Verify bearer token and device scope if auth is enabled.
+    """
+    Verify bearer token and device scope if auth is enabled.
 
     Performs constant-time token comparison and device-scope matching.
     Skips all checks when auth_mode is ``none``.
@@ -38,8 +40,9 @@ def _authenticate(config: MqttConfig, token: str | None, device_id: str | None) 
         device_id: Target device ID for scope enforcement, or ``None``.
 
     Raises:
-        Unauthorized: if token is missing or invalid.
-        ForbiddenDevice: if token is valid but scope doesn't cover the device.
+        UnauthorizedError: if token is missing or invalid.
+        ForbiddenDeviceError: if token is valid but scope doesn't cover the device.
+
     """
     from mqtt_mcp.auth import check_device_authorization, verify_token
     from mqtt_mcp.config.validation import get_credentials
@@ -48,10 +51,10 @@ def _authenticate(config: MqttConfig, token: str | None, device_id: str | None) 
         return
 
     if not token:
-        raise Unauthorized("Missing bearer token")
+        raise UnauthorizedError("Missing bearer token")
 
     creds = get_credentials()
-    # verify_token raises Unauthorized on mismatch (constant-time comparison)
+    # verify_token raises UnauthorizedError on mismatch (constant-time comparison)
     matched_cred = verify_token(token, creds)
 
     # Enforce device-scope authorization
@@ -70,7 +73,8 @@ def _safe_error(exc: DomainError) -> dict[str, object]:
 
 
 def _parse_rfc3339(value: str) -> datetime | None:
-    """Parse an RFC3339 datetime string, returning None on invalid input.
+    """
+    Parse an RFC3339 datetime string, returning None on invalid input.
 
     Only accepts full datetime strings (date + time + UTC timezone).
     Rejects bare dates, non-UTC timezones, and unparseable input.
@@ -101,7 +105,8 @@ def register_commands(
     config: MqttConfig,
     clock_service: ClockService,
 ) -> None:
-    """Register set_alarm, display_message, and set_brightness tools.
+    """
+    Register set_alarm, display_message, and set_brightness tools.
 
     Each tool handler captures ``config`` and ``clock_service`` in its
     closure — no module-level globals are used.
@@ -110,6 +115,7 @@ def register_commands(
         app: The FastMCP application.
         config: Server configuration.
         clock_service: Service for dispatching MQTT commands.
+
     """
 
     @app.tool(name="set_alarm")

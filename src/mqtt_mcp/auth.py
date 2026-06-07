@@ -1,4 +1,5 @@
-"""Authentication module for MQTT MCP server.
+"""
+Authentication module for MQTT MCP server.
 
 Provides Bearer token verification with device-scoped credentials,
 matching clock-server's auth model adapted for MCP tool context.
@@ -10,7 +11,7 @@ import hmac
 import logging
 from typing import NamedTuple
 
-from mqtt_mcp.domain.exceptions import ForbiddenDevice, Unauthorized
+from mqtt_mcp.domain.exceptions import ForbiddenDeviceError, UnauthorizedError
 
 logger = logging.getLogger("mqtt_mcp")
 
@@ -24,7 +25,8 @@ class Credential(NamedTuple):
 
 
 def parse_credentials(auth_credentials: str | None, auth_token: str | None) -> list[Credential]:
-    """Parse credential strings into a list of Credential objects.
+    """
+    Parse credential strings into a list of Credential objects.
 
     Supports two formats:
       1. Multi-credential: ``id|token|scope1,scope2;id2|token2|*``
@@ -39,6 +41,7 @@ def parse_credentials(auth_credentials: str | None, auth_token: str | None) -> l
 
     Raises:
         ValueError: if no credentials could be parsed.
+
     """
     credentials: list[Credential] = []
 
@@ -66,7 +69,8 @@ def parse_credentials(auth_credentials: str | None, auth_token: str | None) -> l
 
 
 def verify_token(token: str, credentials: list[Credential]) -> Credential:
-    """Verify a bearer token against configured credentials.
+    """
+    Verify a bearer token against configured credentials.
 
     Uses constant-time comparison to prevent timing attacks.
 
@@ -78,16 +82,18 @@ def verify_token(token: str, credentials: list[Credential]) -> Credential:
         The matching Credential.
 
     Raises:
-        Unauthorized: if no credential matches the token.
+        UnauthorizedError: if no credential matches the token.
+
     """
     for cred in credentials:
         if hmac.compare_digest(token, cred.token):
             return cred
-    raise Unauthorized()
+    raise UnauthorizedError()
 
 
 def check_device_authorization(credential: Credential, device_id: str) -> None:
-    """Check if a credential is authorized for a specific device.
+    """
+    Check if a credential is authorized for a specific device.
 
     Scope matching:
     - ``*``: allows all devices
@@ -99,7 +105,8 @@ def check_device_authorization(credential: Credential, device_id: str) -> None:
         device_id: The target device ID.
 
     Raises:
-        ForbiddenDevice: if the credential's scope does not cover the device.
+        ForbiddenDeviceError: if the credential's scope does not cover the device.
+
     """
     for scope in credential.devices:
         if scope == "*":
@@ -111,4 +118,4 @@ def check_device_authorization(credential: Credential, device_id: str) -> None:
         if scope == device_id:
             return
 
-    raise ForbiddenDevice(device_id)
+    raise ForbiddenDeviceError(device_id)

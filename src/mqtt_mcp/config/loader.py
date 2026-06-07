@@ -23,6 +23,7 @@ _ENV_MAP: dict[str, str] = {
     "MQTT_MCP_BROKER_PASSWORD": "broker_password",
     "MQTT_MCP_TOPIC_PREFIX": "topic_prefix",
     "MQTT_MCP_QOS": "qos",
+    "MQTT_MCP_RETAINED": "retained",
     "MQTT_MCP_AUTH_MODE": "auth_mode",
     "MQTT_MCP_AUTH_TOKEN": "auth_token",
     "MQTT_MCP_AUTH_CREDENTIALS": "auth_credentials",
@@ -62,7 +63,7 @@ def _read_dotenv(path: Path) -> dict[str, Any]:
 
     raw_dotenv = dotenv_values(path)
     return {
-        field_name: value
+        field_name: value.strip()
         for env_key, field_name in _ENV_MAP.items()
-        if (value := raw_dotenv.get(env_key)) is not None
+        if (value := raw_dotenv.get(env_key)) is not None and value.strip() != ""
     }

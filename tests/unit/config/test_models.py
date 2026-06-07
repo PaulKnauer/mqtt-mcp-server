@@ -27,6 +27,10 @@ class TestMqttConfigDefaults:
         config = MqttConfig()
         assert config.auth_mode == AuthMode.NONE
 
+    def test_default_retained(self) -> None:  # noqa: D102
+        config = MqttConfig()
+        assert config.retained is False
+
 
 class TestMqttConfigValidation:
     """Config validation rules."""
@@ -59,6 +63,56 @@ class TestMqttConfigValidation:
         config = MqttConfig(auth_mode=AuthMode.STATIC, auth_token="token123")
         assert config.auth_mode == AuthMode.STATIC
         assert config.auth_token is not None
+
+
+class TestMqttConfigRetained:
+    """Retained flag parsing and validation."""
+
+    def test_retained_true_parses(self) -> None:  # noqa: D102
+        config = MqttConfig(retained=True)
+        assert config.retained is True
+
+    def test_retained_false_parses(self) -> None:  # noqa: D102
+        config = MqttConfig(retained=False)
+        assert config.retained is False
+
+    def test_invalid_retained_raises_with_field_name(self) -> None:  # noqa: D102
+        with pytest.raises(ValidationError, match="retained"):
+            MqttConfig(retained="not-a-bool")  # type: ignore[arg-type]
+
+
+class TestMqttConfigSecretFields:
+    """Secret-aware fields stay masked."""
+
+    def test_broker_password_is_secret_str(self) -> None:  # noqa: D102
+        config = MqttConfig(broker_password="hunter2")
+        assert isinstance(config.broker_password, SecretStr)
+        assert "hunter2" not in repr(config.broker_password)
+
+    def test_auth_token_is_secret_str(self) -> None:  # noqa: D102
+        config = MqttConfig(auth_token="my-secret-token")
+        assert isinstance(config.auth_token, SecretStr)
+        assert "my-secret-token" not in repr(config.auth_token)
+
+
+class TestMqttConfigFieldErrors:
+    """Validation errors report the specific field name."""
+
+    def test_broker_url_error_names_field(self) -> None:  # noqa: D102
+        with pytest.raises(ValidationError, match="broker_url"):
+            MqttConfig(broker_url="http://bad")
+
+    def test_qos_error_names_field(self) -> None:  # noqa: D102
+        with pytest.raises(ValidationError, match="qos"):
+            MqttConfig(qos=5)
+
+    def test_auth_mode_error_names_field(self) -> None:  # noqa: D102
+        with pytest.raises(ValidationError, match="auth_mode"):
+            MqttConfig(auth_mode="invalid_mode")  # type: ignore[arg-type]
+
+    def test_retained_error_names_field(self) -> None:  # noqa: D102
+        with pytest.raises(ValidationError, match="retained"):
+            MqttConfig(retained="bad-value")  # type: ignore[arg-type]
 
 
 class TestKnownToolNames:

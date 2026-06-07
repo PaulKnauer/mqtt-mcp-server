@@ -179,7 +179,7 @@ class MqttAdapter:
         else:
             logger.info("MQTT connection closed cleanly")
 
-    def publish(self, topic: str, payload: str, qos: int = 1) -> None:
+    def publish(self, topic: str, payload: str, qos: int = 1, retain: bool = False) -> None:
         """
         Publish a message to a topic.
 
@@ -187,6 +187,7 @@ class MqttAdapter:
             topic: The MQTT topic to publish to.
             payload: The message payload (will be encoded as UTF-8).
             qos: Quality of Service level (0, 1, or 2).
+            retain: Whether the broker should retain this message for the topic.
 
         Raises:
             DispatchError: if publish fails or client is not connected.
@@ -196,7 +197,7 @@ class MqttAdapter:
             raise DispatchError("MQTT client is not connected")
 
         try:
-            info = self._client.publish(topic, payload, qos=qos, retain=False)
+            info = self._client.publish(topic, payload, qos=qos, retain=retain)
 
             if info.rc != MQTTErrorCode.MQTT_ERR_SUCCESS:
                 raise DispatchError(f"Publish to '{topic}' failed with code {info.rc.name}")

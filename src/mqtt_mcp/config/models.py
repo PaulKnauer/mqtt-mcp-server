@@ -64,6 +64,10 @@ class MqttConfig(BaseModel):
         le=2,
         description="MQTT QoS level (0, 1, or 2).",
     )
+    retained: bool = Field(
+        default=False,
+        description="Whether published MQTT messages should be retained by the broker.",
+    )
     auth_mode: AuthMode = Field(
         default=AuthMode.NONE,
         description="Authentication mode: none or static.",

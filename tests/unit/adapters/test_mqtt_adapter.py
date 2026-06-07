@@ -159,6 +159,25 @@ class TestMqttAdapterPublish:
         with pytest.raises(DispatchError, match="failed with code"):
             adapter.publish("test/topic", "payload")
 
+    def test_publish_with_retain_true(self) -> None:  # noqa: D102
+        from paho.mqtt.enums import MQTTErrorCode
+
+        adapter, mock_client = self._make_connected_adapter()
+
+        info = MagicMock()
+        info.rc = MQTTErrorCode.MQTT_ERR_SUCCESS
+        info.wait_for_publish.return_value = True
+        info.is_published.return_value = True
+        mock_client.publish.return_value = info
+
+        adapter.publish("test/topic", '{"key": "value"}', qos=1, retain=True)
+        mock_client.publish.assert_called_once_with(
+            "test/topic",
+            '{"key": "value"}',
+            qos=1,
+            retain=True,
+        )
+
     def test_publish_qos_wait_timeout_raises(self) -> None:  # noqa: D102
         from paho.mqtt.enums import MQTTErrorCode
 

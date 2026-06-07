@@ -44,6 +44,7 @@ class TestClockServiceDispatch:
             "clocks/commands/clock-1/set_alarm",
             '{"deviceId": "clock-1", "type": "set_alarm", "alarmTime": "2030-01-01T07:00:00Z"}',
             qos=1,
+            retain=False,
         )
 
     def test_dispatch_display_message(self, service: ClockService, adapter: MagicMock) -> None:  # noqa: D102
@@ -89,6 +90,22 @@ class TestClockServiceDispatch:
                     "durationSeconds": 10,
                 },
             )
+
+    def test_dispatch_with_retain_true_passes_flag(self, adapter: MagicMock) -> None:  # noqa: D102
+        config = MqttConfig(
+            broker_url="mqtt://localhost:1883",
+            topic_prefix="clocks/commands",
+            qos=1,
+            retained=True,
+        )
+        svc = ClockService(adapter, config)
+        svc.dispatch_command(
+            device_id="clock-1",
+            command_type="set_alarm",
+            payload={"deviceId": "clock-1", "type": "set_alarm"},
+        )
+        _, kwargs = adapter.publish.call_args
+        assert kwargs["retain"] is True
 
     def test_topic_from_config_prefix(self, config: MqttConfig, adapter: MagicMock) -> None:  # noqa: D102
         config.topic_prefix = "my/custom/prefix"

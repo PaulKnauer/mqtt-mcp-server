@@ -37,6 +37,7 @@ class ClockService:
         self._adapter = adapter
         self._topic_prefix = config.topic_prefix
         self._qos = config.qos
+        self._retained = config.retained
 
     def dispatch_command(
         self,
@@ -73,7 +74,7 @@ class ClockService:
             topic,
         )
 
-        self._adapter.publish(topic, json_payload, qos=self._qos)
+        self._adapter.publish(topic, json_payload, qos=self._qos, retain=self._retained)
 
         return self._result_for(command_type)
 

@@ -8,6 +8,7 @@ DEFAULTS: dict[str, object] = {
     "broker_password": None,
     "topic_prefix": "clocks/commands",
     "qos": 1,
+    "retained": False,
     "auth_token": None,
     "auth_credentials": None,
     "auth_mode": "none",

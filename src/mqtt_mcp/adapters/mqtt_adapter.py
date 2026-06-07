@@ -81,6 +81,8 @@ class MqttAdapter:
 
         # Register automatic reconnection callback
         client.on_disconnect = self._on_disconnect
+        # Configure paho's built-in auto-reconnect delay
+        client.reconnect_delay_set(min_delay=1, max_delay=60)
 
         last_error: Exception | None = None
         for attempt in range(1, _MAX_RETRIES + 1):
@@ -157,12 +159,16 @@ class MqttAdapter:
         if not self._connected or self._client is None:
             raise DispatchError("MQTT client is not connected")
 
-        info = self._client.publish(topic, payload, qos=qos, retain=False)
+        try:
+            info = self._client.publish(topic, payload, qos=qos, retain=False)
 
-        if info.rc != MQTTErrorCode.MQTT_ERR_SUCCESS:
-            raise DispatchError(f"Publish to '{topic}' failed with code {info.rc.name}")
+            if info.rc != MQTTErrorCode.MQTT_ERR_SUCCESS:
+                raise DispatchError(f"Publish to '{topic}' failed with code {info.rc.name}")
 
-        logger.debug("Published to %s (qos=%d): %s", topic, qos, payload)
+            logger.debug("Published to %s (qos=%d): %s", topic, qos, payload)
+        except (OSError, AttributeError) as exc:
+            self._connected = False
+            raise DispatchError(f"Publish to '{topic}' failed: {exc}") from exc
 
     def disconnect(self) -> None:
         """Disconnect from the MQTT broker."""
